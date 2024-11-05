@@ -1,0 +1,113 @@
+=
+2 workers 1 master
+
+t2.medium 2Vcpu, 4GiB RAM
+
+
+ubuntu 22.04
+SG all ports open from anywhere
+
+
+
+https://github.com/codebuddy123/kubeadm-scripts.git
+
+
+hostnamectl set-hostname k8smaster
+hostnamectl set-hostname k8sworker01
+hostnamectl set-hostname k8sworker02
+
+
+Run all the nodes
+------------------
+sudo -i
+git clone https://github.com/codebuddy123/kubeadm-scripts.git
+chmod u+x common.sh
+./common.sh 
+
+Run only on the master
+-----------------------
+vim kubeadm.config
+
+In the following YAML, replace 192.168.201.10 with the Private IP of your control plane node (advertiseAddress & certSANs, controlplaneEndpoint).
+
+kubeadm init --config=kubeadm.config
+
+
+now exit as a root user and run below commands using ubuntu user
+
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+kubectl get pods --all-namespaces
+
+kubectl get nodes
+
+All the pods should be in running state. 
+
+
+
+
+
+kubeadm token create --print-join-command
+
+Now join the Worker nodes,
+
+Run on 2 worker nodes
+----------------------
+kubeadm join 192.168.249.131:6443 --token ro4vsa.bt6u81o18y2iibc7 --discovery-token-ca-cert-hash sha256:1fc7175f359ad5fb2d6e8d7a55773767e7958d939511ce36f19a9ba5c8b975de
+
+$ kubectl get nodes
+
+
+To enable pod networking, you need to install a CNI plugin.
+
+We will use Calico CNI plugin for our cluster.
+
+Execute the following command from the controlplane to deploy the Calico network plugin.
+
+Run this command on the master,
+kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+
+kubectl get pods -A
+
+you will see now calico pods in running state.
+
+Note: ALWAYS RUN KUBECTL COMMANDS ON MASTER USING UBUNTU USER
+
+
+Now let us label the nodes
+
+
+kubectl get nodes will show role as none
+
+kubectl label nodes k8sworker01 node-role.kubernetes.io/worker=worker
+
+kubectl label nodes k8sworker02 node-role.kubernetes.io/worker=worker
+
+Now after you label it you can see 
+role as worker
+
+kubectl get nodes
+
+Now let us run some kubectl command and see where our pod will be there
+
+kubectl run mypod --image=nginx
+
+kubeadm join 192.168.4.129:6443 --token nzj9op.vici9mtx3yydiacg --discovery-token-ca-cert-hash sha256:eda704c99b1dd0b9e78abfc0a2bbad539a165b4f04cdb0fbb32b8302c17716db
+
+Rocky
+ashish ashish
+root ashish
+
+Nodes
+Username: ashish
+Password: ashish
+-----
+Master : 192.168.4.129
+Worker01: 192.168.4.130
+Worker02: 192.168.29.13
+
+mkdir -p "$HOME"/.kube
+sudo cp -i /etc/kubernetes/admin.conf "$HOME"/.kube/config
+sudo chown "$(id -u)":"$(id -g)" "$HOME"/.kube/config1
